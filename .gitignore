@@ -30,3 +30,6 @@
 
 # Vim Stuffs
 *.swp
+
+# Executable
+profiler
