@@ -9,14 +9,14 @@ typedef std::unordered_map<std::string, std::string> map;
 typedef tbb::concurrent_unordered_map<std::string, std::string> con_map;
 
 
-map* test()
+con_map* test()
 {
-    map* data = new map;
+    con_map* data = new con_map;
     data->emplace("hello", "my name is graham.");
     return data;
 }
 
-void print_map(map* data)
+void print_map(con_map* data)
 {
     for(auto iter = data->begin(); iter != data->end(); ++iter)
     {
@@ -26,8 +26,7 @@ void print_map(map* data)
 
 int main(int argc, char* argv[])
 {
-    con_map* test_map = new con_map;
-    map* thing = test();
+    con_map* thing = test();
     print_map(thing);
     uint64_t first = __rdtsc();
     std::cout << first << std::endl;

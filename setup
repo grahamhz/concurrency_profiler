@@ -1,0 +1,11 @@
+# sets the DYDL_LIBRARY_PATH to the lib folder for
+# our profiler to be able to run
+
+# set this to where your tbb/lib is located
+PATH_TO_SET=/opt/intel/tbb/lib
+
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$PATH_TO_SET
+echo "Set DYLD Library path to: $DYLD_LIBRARY_PATH"
+export TBB_PATH=$PATH_TO_SET
+echo "Set TBB Library path to: $TBB_PATH"
+

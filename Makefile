@@ -5,7 +5,7 @@
 CC = g++
 CXX = g++
 CXXFLAGS = -std=c++11 -O2 -Wall
-INCLUDES = -ltbb -L/opt/intel/compilers_and_libraries/mac/tbb/lib -I/includes
+INCLUDES = -ltbb -L$(TBB_PATH) -I/includes
 
 OBJS = profiler.o
 DOBJS = d_profiler.o

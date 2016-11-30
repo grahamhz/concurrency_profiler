@@ -31,5 +31,8 @@
 # Vim Stuffs
 *.swp
 
-# Executable
+# Executable Stuffs
 profiler
+
+# Mac Stuffs
+.DS_Store
