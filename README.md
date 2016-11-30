@@ -1,6 +1,5 @@
 # concurrency_profiler
 
-___
 
 ## installation
 in order to run this program...
