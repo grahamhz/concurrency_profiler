@@ -9,7 +9,6 @@ INC = inc
 EXE = profiler
 DEXE = d_profiler
 
-#CC = g++
 CXX = g++
 CXXFLAGS = -std=c++11 -O2 -Wall
 EXTRAFLAGS = -ltbb -L$(TBB_PATH) -I/$(INC)
