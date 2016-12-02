@@ -2,30 +2,50 @@
 # concurrency_profiler makefile
 #
 
-CC = g++
+SRC = src
+BIN = bin
+INC = inc
+
+EXE = profiler
+DEXE = d_profiler
+
+#CC = g++
 CXX = g++
 CXXFLAGS = -std=c++11 -O2 -Wall
-INCLUDES = -ltbb -L$(TBB_PATH) -I/includes
+EXTRAFLAGS = -ltbb -L$(TBB_PATH) -I/$(INC)
 
-OBJS = profiler.o
-DOBJS = d_profiler.o
+SOURCES = $(wildcard $(SRC)/*.cpp)
+OBJS = $(SOURCES:src/%.cpp=bin/%.o)
+DOBJS = $(OBJS:bin/%.o=bin/d_%.o)
 
-all: profiler
 
-debug: d_profiler
+all: $(EXE)
+	@echo ========== finished building ==========
+	@echo 
 
-profiler: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o profiler $(OBJS) $(INCLUDES)
+debug: $(DEXE)
 
-d_profiler: $(DOBJS)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -g -o d_profiler $(DOBJS)
+$(EXE): $(OBJS)
+	@echo building executable "$@"
+	@$(CXX) $(CXXFLAGS) $(OBJS) $(EXTRAFLAGS) -o profiler 
 
-profiler.o: profiler.cpp
+$(DEXE): $(DOBJS)
+	@$(CXX) $(CXXFLAGS) $(DOBJS) $(EXTRAFLAGS) -g -o d_profiler
 
-# the way this is set up, you have to explicitly
-# define the debug file call in order to add -g
-d_profiler.o: profiler.cpp
-	$(CXX) $(CXXFLAGS) -g -c -o d_profiler.o profiler.cpp
+$(BIN)/%.o: $(SRC)/%.cpp $(INC)/%.h begin
+	@echo building dependency "$@"
+	@$(CXX) $(CXXFLAGS) -o $@ -c $<
+
+$(BIN)/d_%.o: $(SRC)/%.cpp $(INC)/%.h
+	@$(CXX) $(CXXFLAGS) -g -o $@ -c $<
+
+run: all
+	@source setup && ./$(EXE)
 
 clean: 
-	rm -f *~ *.o profiler d_profiler
+	@echo ========== cleaning up ===========
+	@rm -f *~ $(BIN)/*.o profiler d_profiler
+
+begin:
+	@echo ========== started building ===========
+
