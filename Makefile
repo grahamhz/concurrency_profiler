@@ -11,7 +11,8 @@ DEXE = d_profiler
 
 CXX = g++
 CXXFLAGS = -std=c++11 -O2 -Wall
-EXTRAFLAGS = -ltbb -L$(TBB_PATH) -I/$(INC)
+INCLUDEFLAGS = -I$(INC)
+EXTRAFLAGS = -ltbb -L$(TBB_PATH)
 
 SOURCES = $(wildcard $(SRC)/*.cpp)
 OBJS = $(SOURCES:src/%.cpp=bin/%.o)
@@ -26,17 +27,17 @@ debug: $(DEXE)
 
 $(EXE): $(OBJS)
 	@echo building executable "$@"
-	@$(CXX) $(CXXFLAGS) $(OBJS) $(EXTRAFLAGS) -o profiler 
+	@$(CXX) $(CXXFLAGS) $(EXTRAFLAGS) $(INCLUDEFLAGS) $(OBJS) -o profiler 
 
 $(DEXE): $(DOBJS)
-	@$(CXX) $(CXXFLAGS) $(DOBJS) $(EXTRAFLAGS) -g -o d_profiler
+	@$(CXX) $(CXXFLAGS) $(EXTRAFLAGS) $(INCLUDEFLAGS) $(DOBJS) -g -o d_profiler
 
 $(BIN)/%.o: $(SRC)/%.cpp $(INC)/%.h begin
 	@echo building dependency "$@"
-	@$(CXX) $(CXXFLAGS) -o $@ -c $<
+	@$(CXX) $(CXXFLAGS) $(INCLUDEFLAGS) -o $@ -c $<
 
 $(BIN)/d_%.o: $(SRC)/%.cpp $(INC)/%.h
-	@$(CXX) $(CXXFLAGS) -g -o $@ -c $<
+	@$(CXX) $(CXXFLAGS) $(INCLUDEFLAGS) -g -o $@ -c $<
 
 run: all
 	@source setup && ./$(EXE)

@@ -3,7 +3,8 @@
 #include<unordered_map>
 #include<unistd.h>
 #include<x86intrin.h>
-#include "../inc/tbb/concurrent_unordered_map.h"
+#include "tbb/concurrent_unordered_map.h"
+#include "frand.h"
 
 // map related defs
 typedef tbb::concurrent_unordered_map<std::string, std::string> con_map;
@@ -33,5 +34,12 @@ int main(int argc, char* argv[])
     uint64_t second = __rdtsc();
     std::cout << second << std::endl;
     std::cout << "diff: " << (second - first) << std::endl;
-    
+
+    frand ran(time(NULL));
+    int count = 25;
+    while(count > 0)
+    {
+        std::cout << ran.gen() << std::endl;
+        --count;
+    }
 }
