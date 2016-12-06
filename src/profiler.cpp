@@ -5,6 +5,7 @@
 #include<x86intrin.h>
 #include "tbb/concurrent_unordered_map.h"
 #include "frand.h"
+#include "cycles.h"
 
 // map related defs
 typedef tbb::concurrent_unordered_map<std::string, std::string> con_map;
@@ -30,7 +31,7 @@ int main(int argc, char* argv[])
     print_map(thing);
     uint64_t first = __rdtsc();
     std::cout << first << std::endl;
-    usleep(1000);
+    usleep(1000000);
     uint64_t second = __rdtsc();
     std::cout << second << std::endl;
     std::cout << "diff: " << (second - first) << std::endl;
@@ -42,4 +43,21 @@ int main(int argc, char* argv[])
         std::cout << ran.gen() << std::endl;
         --count;
     }
+
+    cycles cycler;
+    if(!cycler.init())
+    {
+        std::cout << "nope. cycles::init failed" << std::endl;
+        return 1;
+    }
+    std::cout << "cycles per second: " << cycler.get_cycles_per_sec() << std::endl;
+    std::cout << "it took: " << cycler.to_seconds(second - first) << std::endl;
+
 }
+
+
+
+
+
+
+
