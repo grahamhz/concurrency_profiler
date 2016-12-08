@@ -29,8 +29,3 @@ typedef tbb::speculative_spin_mutex::scoped_lock tsx_scoped_mutex;
 /* function pointer typedef */
 typedef void* (*test_func)(void*);
 
-/* accessed array struct */
-struct elem {
-    uint64_t val;
-    uint64_t padding[7];
-};

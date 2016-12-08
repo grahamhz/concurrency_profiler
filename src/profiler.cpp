@@ -16,6 +16,12 @@
 #define NUM_THREADS 10
 #define NUM_ACCESSES 1000000
 
+/* accessed array struct */
+struct elem {
+    uint64_t val;
+    uint64_t padding[7];
+};
+
 /* htm globals */
 tsx_mutex *htm_mu;
 
