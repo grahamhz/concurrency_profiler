@@ -6,13 +6,15 @@
 #include <semaphore.h>
 #include <inttypes.h>
 #include "tbb/concurrent_unordered_map.h"
+#include "tbb/spin_mutex.h"
 #include "frand.h"
 #include "cycles.h"
 
 // map related defs
-typedef tbb::concurrent_unordered_map<std::string, std::string> con_map;
 
+typedef tbb::speculative_spin_mutex tsx_mutex;
 
+tsx_mutex mu;
 // Needs padding to make each struct 128 
 struct elem {
     uint64_t val;
@@ -20,30 +22,33 @@ struct elem {
 };
 
 long NUM_ACCESSES = 1000000;
-int NUM_THREADS = 10;
+int NUM_THREADS;
 
 elem *shared;
 pthread_t *threads;
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void * do_it(void *indexp)
 {
     int index = *(int*)indexp;
     
-
     for (long i = 0; i < NUM_ACCESSES; ++i)
     {
-        pthread_mutex_lock(&mutex);
+        // std::cout << "Before lock" << std::endl;
+        tbb::speculative_spin_mutex::scoped_lock lock(mu);
         shared[index].val++;
-        pthread_mutex_unlock(&mutex);
+        // std::cout << "Inside lock" << std::endl;
+        
+        // std::cout << "After lock" << std::endl;
+
     }
 
     return NULL;
 }
 
 
-void run_basic_test()
+void run_test()
 {
     shared = (elem *) calloc(NUM_THREADS, sizeof(elem));
     threads = (pthread_t *) calloc(NUM_THREADS, sizeof(pthread_t));
@@ -63,32 +68,36 @@ void run_basic_test()
             std::cout << "Error. Thread " << i << " only counted to " << shared[i].val << std::endl;
     }
 
-    printf("\n");
 }
 
 
 int main(int argc, char* argv[])
 {
-    std::cout << "Testing " << NUM_THREADS << " threads on " << NUM_ACCESSES << " accesses " << std::endl;
-    uint64_t first = __rdtsc();
-    // std::cout << first << std::endl;
-    
 
-    run_basic_test();
-
-
-    uint64_t second = __rdtsc();
-    // std::cout << second << std::endl;
-    // std::cout << "diff: " << (second - first) << std::endl;
-
-    cycles cycler;
-    if(!cycler.init())
+    // std::cout << "Testing " << NUM_THREADS << " threads on " << NUM_ACCESSES << " accesses " << std::endl;
+    std::cout << "Testing htm" << std::endl;
+    for (int i = 1; i <= 10; ++i)
     {
-        std::cout << "nope. cycles::init failed" << std::endl;
-        return 1;
+        NUM_THREADS = i;
+
+        uint64_t first = __rdtsc();
+
+
+        run_test();
+
+
+        uint64_t second = __rdtsc();
+
+        cycles cycler;
+        if(!cycler.init())
+        {
+            std::cout << "nope. cycles::init failed" << std::endl;
+            return 1;
+        }
+
+        // std::cout << "took: " << cycler.to_seconds(second - first) << " seconds" << std::endl;
+        std::cout << NUM_THREADS << "\t" << cycler.to_seconds(second - first) << std::endl;
     }
-    // std::cout << "cycles per second: " << cycler.get_cycles_per_sec() << std::endl;
-    std::cout << "took: " << cycler.to_seconds(second - first) << " seconds" << std::endl;
 
 }
 
