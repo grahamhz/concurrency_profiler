@@ -104,8 +104,9 @@ int main(int argc, char* argv[])
     htm_mu = new tsx_mutex();
     
     // initialize the test calls
-    char const *tests[] = {"none", "pthread", "tsx"};
-    test_func test_funcs[] = {no_lock, pthread_lock, speculative_lock};
+    char const *tests[] = {"none","tsx"};
+    test_func test_funcs[] = {no_lock, speculative_lock};
+    size_t tests_size = sizeof(tests) / sizeof(tests[0]);
 
     // init the cycler
     cycles cycler;
@@ -119,7 +120,7 @@ int main(int argc, char* argv[])
     for(int num_rep = 0; num_rep < NUM_REPS; ++num_rep)
     {
         // loop for different tests
-        for(size_t test_type = 0; test_type < sizeof(tests); ++test_type)
+        for(size_t test_type = 0; test_type < tests_size; ++test_type)
         {
             std::cout << "*** Testing " << tests[test_type] << " ***" << std::endl;
 
