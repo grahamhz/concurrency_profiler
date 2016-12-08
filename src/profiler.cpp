@@ -13,6 +13,7 @@
 // map related defs
 
 typedef tbb::speculative_spin_mutex tsx_mutex;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 tsx_mutex mu;
 // Needs padding to make each struct 128 
@@ -22,46 +23,65 @@ struct elem {
 };
 
 long NUM_ACCESSES = 1000000;
-int NUM_THREADS;
 
 elem *shared;
 pthread_t *threads;
 
-// pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void * do_it(void *indexp)
+void * speculative_lock(void *indexp)
 {
     int index = *(int*)indexp;
     
     for (long i = 0; i < NUM_ACCESSES; ++i)
     {
-        // std::cout << "Before lock" << std::endl;
         tbb::speculative_spin_mutex::scoped_lock lock(mu);
         shared[index].val++;
-        // std::cout << "Inside lock" << std::endl;
-        
-        // std::cout << "After lock" << std::endl;
+    }
 
+    return NULL;
+}
+
+void * pthread_lock(void *indexp)
+{
+    int index = *(int*)indexp;
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        pthread_mutex_lock(&mutex);
+        shared[index].val++;
+        pthread_mutex_unlock(&mutex);
+    }
+
+    return NULL;
+}
+
+void * no_lock(void *indexp)
+{
+    int index = *(int*)indexp;
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        shared[index].val++;
     }
 
     return NULL;
 }
 
 
-void run_test()
+void run_test(int num_threads, test_func)
 {
-    shared = (elem *) calloc(NUM_THREADS, sizeof(elem));
-    threads = (pthread_t *) calloc(NUM_THREADS, sizeof(pthread_t));
 
-    for (int i = 0; i < NUM_THREADS; ++i)
+
+
+    for (int i = 0; i < num_threads; ++i)
     {
         int* x = (int *) malloc(sizeof(int));
         *x = i;
-        pthread_create(&threads[i], NULL, do_it, x);
+        pthread_create(&threads[i], NULL, test_func, x);
     }
 
 
-    for (int i = 0; i < NUM_THREADS; ++i)
+    for (int i = 0; i < num_threads; ++i)
     {
         pthread_join(threads[i], NULL);
         if(shared[i].val != NUM_ACCESSES)
@@ -73,20 +93,22 @@ void run_test()
 
 int main(int argc, char* argv[])
 {
+    char** tests = ["none", "pthread", "tsx"];
 
-    // std::cout << "Testing " << NUM_THREADS << " threads on " << NUM_ACCESSES << " accesses " << std::endl;
+    void* functions []
+
     std::cout << "Testing htm" << std::endl;
     for (int i = 1; i <= 10; ++i)
     {
-        NUM_THREADS = i;
 
-        uint64_t first = __rdtsc();
+        shared = (elem *) calloc(NUM_THREADS, sizeof(elem));
+        threads = (pthread_t *) calloc(NUM_THREADS, sizeof(pthread_t));
+        
+        uint64_t start = __rdtsc();
 
+        run_test(i, functions[i]);
 
-        run_test();
-
-
-        uint64_t second = __rdtsc();
+        uint64_t end = __rdtsc();
 
         cycles cycler;
         if(!cycler.init())
@@ -95,8 +117,7 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        // std::cout << "took: " << cycler.to_seconds(second - first) << " seconds" << std::endl;
-        std::cout << NUM_THREADS << "\t" << cycler.to_seconds(second - first) << std::endl;
+        std::cout << NUM_THREADS << "\t" << cycler.to_seconds(end - start) << std::endl;
     }
 
 }
