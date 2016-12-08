@@ -20,7 +20,7 @@ struct elem {
 };
 
 long NUM_ACCESSES = 1000000;
-int NUM_THREADS = 3;
+int NUM_THREADS = 10;
 
 elem *shared;
 pthread_t *threads;
