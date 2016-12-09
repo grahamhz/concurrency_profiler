@@ -4,8 +4,8 @@
  * tests data structure performance
  * under different situations.
  *
- * Derek Johnson
  * Graham Zuber
+ * Derek Johnson
  *
  * 12.8.16
  */
@@ -529,8 +529,11 @@ int main(int argc, char* argv[])
             // loop for testing with different amounts of threads
             for (int num_of_thds = 0; num_of_thds < NUM_THREADS; ++num_of_thds)
             {
-                shared = (elem*) calloc(num_of_thds, sizeof(elem));
+                shared = (elem*) aligned_alloc(64, num_of_thds * sizeof(elem));
+                memset(shared, 0, num_of_thds * sizeof(elem));
+
                 shared_small = (elem_small*) calloc(num_of_thds, sizeof(elem_small));
+
                 threads = (pthread_t*) calloc(num_of_thds, sizeof(pthread_t));
 
                 shared_map = new map();
