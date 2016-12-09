@@ -11,6 +11,8 @@
  */
 
 #include "profiler.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 #define NUM_REPS 1
 #define NUM_THREADS 10
@@ -529,7 +531,12 @@ int main(int argc, char* argv[])
             // loop for testing with different amounts of threads
             for (int num_of_thds = 0; num_of_thds < NUM_THREADS; ++num_of_thds)
             {
-                shared = (elem*) aligned_alloc(64, num_of_thds * sizeof(elem));
+                posix_memalign((void **)&shared, 64, num_of_thds * sizeof(elem));
+                if(((uint64_t)shared & (64-1)) != 0)
+                {
+                    std::cout << "Error: array not aligned" << std::endl;
+                }
+
                 memset(shared, 0, num_of_thds * sizeof(elem));
 
                 shared_small = (elem_small*) calloc(num_of_thds, sizeof(elem_small));
