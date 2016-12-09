@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 #define NUM_REPS 5
-#define NUM_THREADS 10
+#define NUM_THREADS 6
 #define NUM_ACCESSES 1000000
 
 
@@ -525,7 +525,7 @@ int main(int argc, char* argv[])
         std::cout << "*** Testing " << tests[test_type] << " ***" << std::endl;
 
         // loop for testing with different amounts of threads
-        for (int num_of_thds = 0; num_of_thds < NUM_THREADS; ++num_of_thds)
+        for (int num_of_thds = 1; num_of_thds <= NUM_THREADS; ++num_of_thds)
         {
             double avg = 0;
 
