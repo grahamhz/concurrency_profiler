@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 #define NUM_REPS 5
-#define NUM_THREADS 6
+#define NUM_THREADS 10
 #define NUM_ACCESSES 1000000
 
 
@@ -482,7 +482,7 @@ int main(int argc, char* argv[])
         "no_lock_map",
         "pthread_lock_map",
         "spin_lock_map", 
-        "speculative_spin_lock_map_small",
+        "speculative_spin_lock_map",
         "no_lock_map_small",
         "pthread_lock_map_small",
         "spin_lock_map_small", 
