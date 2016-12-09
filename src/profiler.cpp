@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define NUM_REPS 1
+#define NUM_REPS 5
 #define NUM_THREADS 10
 #define NUM_ACCESSES 1000000
 
@@ -35,7 +35,6 @@ elem_small *shared_small;
 
 map *shared_map;
 small_map *shared_small_map;
-
 
 
 
@@ -473,38 +472,38 @@ int main(int argc, char* argv[])
     // initialize the test calls
     char const *tests[] = {
         "no_lock_array", 
-        /*"pthread_lock_array",*/
+        "pthread_lock_array",
         "spin_lock_array", 
         "speculative_spin_lock_array",
         "no_lock_array_small", 
-        /*"pthread_lock_array_small",*/
+        "pthread_lock_array_small",
         "spin_lock_array_small", 
         "speculative_spin_lock_array_small",
         "no_lock_map",
-        /*"pthread_lock_map",*/
+        "pthread_lock_map",
         "spin_lock_map", 
         "speculative_spin_lock_map_small",
         "no_lock_map_small",
-        /*"pthread_lock_map_small",*/
+        "pthread_lock_map_small",
         "spin_lock_map_small", 
         "speculative_spin_lock_map_small"
     };
 
     test_func test_funcs[] = {
         no_lock_array, 
-        /*pthread_lock_array,*/
+        pthread_lock_array,
         spin_lock_array, 
         speculative_spin_lock_array,
         no_lock_array_small, 
-        /*pthread_lock_array_small,*/
+        pthread_lock_array_small,
         spin_lock_array_small, 
         speculative_spin_lock_array_small,
         no_lock_map,
-        /*pthread_lock_map,*/
+        pthread_lock_map,
         spin_lock_map, 
         speculative_spin_lock_map,
         no_lock_map_small,
-        /*pthread_lock_map_small,*/
+        pthread_lock_map_small,
         spin_lock_map_small, 
         speculative_spin_lock_map_small
     };
@@ -520,32 +519,30 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // loop for repition
-    for(int num_rep = 0; num_rep < NUM_REPS; ++num_rep)
+    // loop for different tests
+    for(size_t test_type = 0; test_type < tests_size; ++test_type)
     {
-        // loop for different tests
-        for(size_t test_type = 0; test_type < tests_size; ++test_type)
-        {
-            std::cout << "*** Testing " << tests[test_type] << " ***" << std::endl;
+        std::cout << "*** Testing " << tests[test_type] << " ***" << std::endl;
 
-            // loop for testing with different amounts of threads
-            for (int num_of_thds = 0; num_of_thds < NUM_THREADS; ++num_of_thds)
+        // loop for testing with different amounts of threads
+        for (int num_of_thds = 0; num_of_thds < NUM_THREADS; ++num_of_thds)
+        {
+            double avg = 0;
+
+            // loop for repition
+            for(int num_rep = 0; num_rep < NUM_REPS; ++num_rep)
             {
                 posix_memalign((void **)&shared, 64, num_of_thds * sizeof(elem));
                 if(((uint64_t)shared & (64-1)) != 0)
                 {
                     std::cout << "Error: array not aligned" << std::endl;
                 }
-
                 memset(shared, 0, num_of_thds * sizeof(elem));
 
                 shared_small = (elem_small*) calloc(num_of_thds, sizeof(elem_small));
-
                 threads = (pthread_t*) calloc(num_of_thds, sizeof(pthread_t));
-
                 shared_map = new map();
                 shared_small_map = new small_map();
-
                 for(int i = 0; i < num_of_thds; ++i)
                 {
                     shared_map->emplace(i, new elem());
@@ -553,12 +550,13 @@ int main(int argc, char* argv[])
                 }
 
                 uint64_t start = __rdtsc();
-
                 run_test(num_of_thds, test_funcs[test_type]);
-
                 uint64_t end = __rdtsc();
 
-                std::cout << num_of_thds << "\t" << cycler.to_seconds(end - start) << std::endl;
+                double time = cycler.to_seconds(end - start);
+                avg += time;
+
+                //std::cout << num_of_thds << "\t" << time << std::endl;
 
                 // clean up
                 free(shared);
@@ -567,15 +565,17 @@ int main(int argc, char* argv[])
                 free(shared_map);
                 free(shared_small_map);
             }
+            std::cout << "Avg: " << num_of_thds << "\t" << avg / NUM_REPS << std::endl;
         }
     }
 
+    int op_avg = 0;
     for(int num_rep = 0; num_rep < NUM_REPS; ++num_rep)
     {
         std::cout << "*** Testing XBEGIN/XEND Cost ***" << std::endl;
 
         shared = (elem*) calloc(1, sizeof(elem));
-        
+
         uint64_t start_spec = __rdtsc();
         run_test(1, speculative_spin_lock_array);
         uint64_t end_spec = __rdtsc();
@@ -597,14 +597,17 @@ int main(int argc, char* argv[])
             total_diff = non_spec_total - spec_total;
         }
 
+        int op_diff = total_diff / NUM_ACCESSES;
+        op_avg += op_diff;
         std::cout << "Total Cycles Spec: " << spec_total << std::endl;
         std::cout << "Total Cycles Non Spec: " << non_spec_total << std::endl;
         std::cout << "Total Diff in Cycles: " << total_diff << std::endl;
-        std::cout << "Total Diff per Op: " << total_diff / NUM_ACCESSES << std::endl;
+        std::cout << "Total Diff per Op: " << op_diff << std::endl;
 
         free(shared);
     }
 
+    std::cout << "AVG OP COST: " << op_avg / NUM_REPS << std::endl;
 }
 
 
