@@ -563,6 +563,41 @@ int main(int argc, char* argv[])
         }
     }
 
+    for(int num_rep = 0; num_rep < NUM_REPS; ++num_rep)
+    {
+        std::cout << "*** Testing XBEGIN/XEND Cost ***" << std::endl;
+
+        shared = (elem*) calloc(1, sizeof(elem));
+        
+        uint64_t start_spec = __rdtsc();
+        run_test(1, speculative_spin_lock_array);
+        uint64_t end_spec = __rdtsc();
+
+        uint64_t start = __rdtsc();
+        run_test(1, spin_lock_array);
+        uint64_t end = __rdtsc();
+
+        uint64_t spec_total = end_spec - start_spec;
+        uint64_t non_spec_total = end - start;
+
+        uint64_t total_diff;
+        if(spec_total > non_spec_total)
+        {
+            total_diff = spec_total - non_spec_total;
+        }
+        else
+        {
+            total_diff = non_spec_total - spec_total;
+        }
+
+        std::cout << "Total Cycles Spec: " << spec_total << std::endl;
+        std::cout << "Total Cycles Non Spec: " << non_spec_total << std::endl;
+        std::cout << "Total Diff in Cycles: " << total_diff << std::endl;
+        std::cout << "Total Diff per Op: " << total_diff / NUM_ACCESSES << std::endl;
+
+        free(shared);
+    }
+
 }
 
 
