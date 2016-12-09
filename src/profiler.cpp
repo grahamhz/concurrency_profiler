@@ -12,27 +12,45 @@
 
 #include "profiler.h"
 
-#define NUM_REPS 10
+#define NUM_REPS 1
 #define NUM_THREADS 10
 #define NUM_ACCESSES 1000000
 
-/* accessed array struct */
-struct elem {
-    uint64_t val;
-    uint64_t padding[7];
-};
 
 /* htm globals */
 tsx_mutex *htm_mu;
+
+/* spin lock globals */
+spin_lock *spin_mu;
 
 /* pthread globals */
 pthread_t *threads;
 pthread_mutex_t p_mu = PTHREAD_MUTEX_INITIALIZER;
 
-/* global shared access array */
+/* global shared access data structures */
 elem *shared;
+elem_small *shared_small;
 
-void* speculative_lock(void *indexp)
+map *shared_map;
+small_map *shared_small_map;
+
+
+
+
+
+
+
+/********** ARRAY ACCESSES **********/
+/*
+ * speculative_spin_lock_array
+ * tests array accesses with a 
+ * speculative spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* speculative_spin_lock_array(void *indexp)
 {
     int index = *(int*)indexp;
     free(indexp);
@@ -47,7 +65,40 @@ void* speculative_lock(void *indexp)
     return NULL;
 }
 
-void* pthread_lock(void *indexp)
+/*
+ * spin_lock_array
+ * tests array accesses with a 
+ * spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* spin_lock_array(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        scoped_spin_lock temp_lock(*spin_mu);
+        shared[index].val++;
+        temp_lock.release();
+    }
+
+    return NULL;
+}
+
+/*
+ * pthread_lock_array
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* pthread_lock_array(void *indexp)
 {
     int index = *(int*)indexp;
     free(indexp);
@@ -62,7 +113,16 @@ void* pthread_lock(void *indexp)
     return NULL;
 }
 
-void* no_lock(void *indexp)
+/*
+ * no_lock_array
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* no_lock_array(void *indexp)
 {
     int index = *(int*)indexp;
     free(indexp);
@@ -75,6 +135,314 @@ void* no_lock(void *indexp)
     return NULL;
 }
 
+
+
+
+
+
+
+
+
+/********** SMALL ARRAY ACCESSES **********/
+/*
+ * speculative_spin_lock_array_small
+ * tests array accesses with a 
+ * speculative spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* speculative_spin_lock_array_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        tsx_scoped_mutex temp_lock(*htm_mu);
+        shared_small[index].val++;
+        temp_lock.release();
+    }
+
+    return NULL;
+}
+
+/*
+ * spin_lock_array_small
+ * tests array accesses with a 
+ * spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* spin_lock_array_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        scoped_spin_lock temp_lock(*spin_mu);
+        shared_small[index].val++;
+        temp_lock.release();
+    }
+
+    return NULL;
+}
+
+/*
+ * pthread_lock_array_small
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* pthread_lock_array_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        pthread_mutex_lock(&p_mu);
+        shared_small[index].val++;
+        pthread_mutex_unlock(&p_mu);
+    }
+
+    return NULL;
+}
+
+/*
+ * no_lock_array_small
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* no_lock_array_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        shared_small[index].val++;
+    }
+
+    return NULL;
+}
+
+
+
+/********** MAP ACCESSES **********/
+/*
+ * speculative_spin_lock_map
+ * tests array accesses with a 
+ * speculative spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* speculative_spin_lock_map(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        tsx_scoped_mutex temp_lock(*htm_mu);
+        (*shared_map)[index]->val++;
+        temp_lock.release();
+    }
+
+    return NULL;
+}
+
+/*
+ * spin_lock_map
+ * tests array accesses with a 
+ * spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* spin_lock_map(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        scoped_spin_lock temp_lock(*spin_mu);
+        (*shared_map)[index]->val++;
+        temp_lock.release();
+    }
+
+    return NULL;
+}
+
+/*
+ * pthread_lock_map
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* pthread_lock_map(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        pthread_mutex_lock(&p_mu);
+        (*shared_map)[index]->val++;
+        pthread_mutex_unlock(&p_mu);
+    }
+
+    return NULL;
+}
+
+/*
+ * no_lock_map
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* no_lock_map(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        (*shared_map)[index]->val++;
+    }
+
+    return NULL;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/********** SMALL MAP ACCESSES **********/
+/*
+ * speculative_spin_lock_map_small
+ * tests array accesses with a 
+ * speculative spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* speculative_spin_lock_map_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        tsx_scoped_mutex temp_lock(*htm_mu);
+        (*shared_small_map)[index]->val++;
+        temp_lock.release();
+    }
+
+    return NULL;
+}
+
+/*
+ * spin_lock_map
+ * tests array accesses with a 
+ * spin lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* spin_lock_map_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        scoped_spin_lock temp_lock(*spin_mu);
+        (*shared_small_map)[index]->val++;
+        temp_lock.release();
+    }
+
+    return NULL;
+}
+
+/*
+ * pthread_lock_map_small
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* pthread_lock_map_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        pthread_mutex_lock(&p_mu);
+        (*shared_small_map)[index]->val++;
+        pthread_mutex_unlock(&p_mu);
+    }
+
+    return NULL;
+}
+
+/*
+ * no_lock_map_small
+ * tests array accesses with a 
+ * pthread lock.
+ *
+ * indexp: index of array to access
+ *
+ * return void
+ */
+void* no_lock_map_small(void *indexp)
+{
+    int index = *(int*)indexp;
+    free(indexp);
+    
+    for (long i = 0; i < NUM_ACCESSES; ++i)
+    {
+        (*shared_small_map)[index]->val++;
+    }
+
+    return NULL;
+}
+
+
+/**********  RUN  **********/
 
 void run_test(int num_threads, test_func func_call)
 {
@@ -90,22 +458,56 @@ void run_test(int num_threads, test_func func_call)
     for (int i = 0; i < num_threads; ++i)
     {
         pthread_join(threads[i], NULL);
-        if(shared[i].val != NUM_ACCESSES)
-        {
-            std::cout << "Error. Thread " << i << " only counted to " << shared[i].val << std::endl;
-        }
     }
 }
 
 
 int main(int argc, char* argv[])
 {
-    // initialize the htm mutex
+    // initialize the mutexes
     htm_mu = new tsx_mutex();
+    spin_mu = new spin_lock();
     
     // initialize the test calls
-    char const *tests[] = {"none","tsx"};
-    test_func test_funcs[] = {no_lock, speculative_lock};
+    char const *tests[] = {
+        "no_lock_array", 
+        /*"pthread_lock_array",*/
+        "spin_lock_array", 
+        "speculative_spin_lock_array",
+        "no_lock_array_small", 
+        /*"pthread_lock_array_small",*/
+        "spin_lock_array_small", 
+        "speculative_spin_lock_array_small",
+        "no_lock_map",
+        /*"pthread_lock_map",*/
+        "spin_lock_map", 
+        "speculative_spin_lock_map_small",
+        "no_lock_map_small",
+        /*"pthread_lock_map_small",*/
+        "spin_lock_map_small", 
+        "speculative_spin_lock_map_small"
+    };
+
+    test_func test_funcs[] = {
+        no_lock_array, 
+        /*pthread_lock_array,*/
+        spin_lock_array, 
+        speculative_spin_lock_array,
+        no_lock_array_small, 
+        /*pthread_lock_array_small,*/
+        spin_lock_array_small, 
+        speculative_spin_lock_array_small,
+        no_lock_map,
+        /*pthread_lock_map,*/
+        spin_lock_map, 
+        speculative_spin_lock_map,
+        no_lock_map_small,
+        /*pthread_lock_map_small,*/
+        spin_lock_map_small, 
+        speculative_spin_lock_map_small
+    };
+
+    // determine number of types of tests to run
     size_t tests_size = sizeof(tests) / sizeof(tests[0]);
 
     // init the cycler
@@ -128,7 +530,17 @@ int main(int argc, char* argv[])
             for (int num_of_thds = 0; num_of_thds < NUM_THREADS; ++num_of_thds)
             {
                 shared = (elem*) calloc(num_of_thds, sizeof(elem));
+                shared_small = (elem_small*) calloc(num_of_thds, sizeof(elem_small));
                 threads = (pthread_t*) calloc(num_of_thds, sizeof(pthread_t));
+
+                shared_map = new map();
+                shared_small_map = new small_map();
+
+                for(int i = 0; i < num_of_thds; ++i)
+                {
+                    shared_map->emplace(i, new elem());
+                    shared_small_map->emplace(i, new elem_small());
+                }
 
                 uint64_t start = __rdtsc();
 
@@ -140,7 +552,10 @@ int main(int argc, char* argv[])
 
                 // clean up
                 free(shared);
+                free(shared_small);
                 free(threads);
+                free(shared_map);
+                free(shared_small_map);
             }
         }
     }
