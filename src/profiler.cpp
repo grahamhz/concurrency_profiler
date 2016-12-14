@@ -18,7 +18,6 @@
 #define NUM_REPS 5
 #define NUM_THREADS 4
 #define NUM_OPS 1000000
-#define MAX_ARRAY_SIZE 1 << 31
 
 /* htm globals */
 tsx_mutex *tsx_mu;
@@ -36,7 +35,6 @@ elem *shared;
 elem_small *shared_small;
 
 /* fast random globals */
-frand *fast_random;
 
 /********** ARRAY ACCESSES **********/
 /*
@@ -50,10 +48,10 @@ frand *fast_random;
  */
 void* speculative_spin_lock_array(void *x)
 {
-
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
+        int index = fast_random.gen() % shared_len;
         
         tsx_scoped_mutex temp_lock(*tsx_mu);
         shared[index].val++;
@@ -74,10 +72,10 @@ void* speculative_spin_lock_array(void *x)
  */
 void* spin_lock_array(void *x)
 {
-
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
+        int index = fast_random.gen() % shared_len;
         
         scoped_spin_lock temp_lock(*spin_mu);
         shared[index].val++;
@@ -97,11 +95,11 @@ void* spin_lock_array(void *x)
  */
 void* no_lock_array(void *x)
 {
-
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
-               
+        int index = fast_random.gen() % shared_len;
+
         shared[index].val++;
     }
 
@@ -111,13 +109,23 @@ void* no_lock_array(void *x)
 
 void* fine_grained_spin_lock_array(void *x)
 {
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
 
-        scoped_spin_lock temp_lock(*spin_mu_array[index]);
+        // scoped_spin_lock temp_lock_mutual(*spin_mu);
+
+
+        int index = fast_random.gen() % shared_len;
+        // std::cout << "index: " << index << std::endl << std::flush;
+        scoped_spin_lock temp_lock(*(spin_mu_array[index]));
+        // std::cout << "Lock " << index << " taken" << std::endl << std::flush;
         shared[index].val++;
         temp_lock.release();
+        // std::cout << "Lock " << index << " released\n" << std::endl << std::flush;
+
+
+        // temp_lock_mutual.release();
     }
 
     return NULL;
@@ -136,10 +144,10 @@ void* fine_grained_spin_lock_array(void *x)
  */
 void* speculative_spin_lock_array_small(void *x)
 {
-
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
+        int index = fast_random.gen() % shared_len;
 
         tsx_scoped_mutex temp_lock(*tsx_mu);
         shared_small[index].val++;
@@ -160,10 +168,10 @@ void* speculative_spin_lock_array_small(void *x)
  */
 void* spin_lock_array_small(void *x)
 {
-
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
+        int index = fast_random.gen() % shared_len;
         
         scoped_spin_lock temp_lock(*spin_mu);
         shared_small[index].val++;
@@ -184,10 +192,10 @@ void* spin_lock_array_small(void *x)
  */
 void* no_lock_array_small(void *x)
 {
-
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
+        int index = fast_random.gen() % shared_len;
         
         shared_small[index].val++;
     }
@@ -197,11 +205,12 @@ void* no_lock_array_small(void *x)
 
 void* fine_grained_spin_lock_array_small(void *x)
 {
+    frand fast_random(time(NULL));
     for (long i = 0; i < NUM_OPS; ++i)
     {
-        int index = fast_random->gen() % shared_len;
+        int index = fast_random.gen() % shared_len;
 
-        scoped_spin_lock temp_lock(*spin_mu_array[index]);
+        scoped_spin_lock temp_lock(*(spin_mu_array[index]));
         shared_small[index].val++;
         temp_lock.release();
     }
@@ -216,14 +225,14 @@ void* fine_grained_spin_lock_array_small(void *x)
 void run_test(test_func func_call)
 {
     // loop through and create threads
-    for (int i = 0; i <= NUM_THREADS; ++i)
+    for (int i = 0; i < NUM_THREADS; ++i)
     {
 
         pthread_create(&threads[i], NULL, func_call, NULL);
     }
 
     // wait for threads
-    for (int i = 0; i <= NUM_THREADS; ++i)
+    for (int i = 0; i < NUM_THREADS; ++i)
     {
         pthread_join(threads[i], NULL);
     }
@@ -235,7 +244,6 @@ int main(int argc, char* argv[])
     // initialize the mutexes
     tsx_mu = new tsx_mutex();
     spin_mu = new spin_lock();
-    fast_random = new frand(0);
     shared_len = 1;
 
     
@@ -276,14 +284,14 @@ int main(int argc, char* argv[])
     std::cout << "arr_len";
     for (int i = 0; i < tests_size; ++i)
     {
-        std::cout << "\t" << tests[i];
+        std::cout << "," << tests[i];
     }
     std::cout << std::endl;
 
     // loop for array size
     while (1)
     {
-        std::cout << shared_len << "\t";
+        std::cout << shared_len << std::flush;
 
         // loop for different tests
         for(size_t test_type = 0; test_type < tests_size; ++test_type)
@@ -305,14 +313,13 @@ int main(int argc, char* argv[])
 
                 shared_small = (elem_small*) calloc(shared_len, sizeof(elem_small));
                 threads = (pthread_t*) calloc(NUM_THREADS, sizeof(pthread_t));
-                spin_mu_array = (spin_lock **) calloc(shared_len, sizeof(spin_lock));
+                spin_mu_array = (spin_lock **) calloc(shared_len, sizeof(spin_lock *));
 
                 // initialize fine-grained locks
                 for (int i = 0; i < shared_len; ++i)
                 {
                     spin_mu_array[i] = new spin_lock();
                 }
-
 
                 uint64_t start = __rdtsc();
                 run_test(test_funcs[test_type]);
@@ -321,18 +328,16 @@ int main(int argc, char* argv[])
                 double time = cycler.to_seconds(end - start);
                 avg += time;
 
-                //std::cout << shared_len << "\t" << time << std::endl;
-
                 // clean up
                 free(shared);
                 free(shared_small);
                 free(threads);
                 free(spin_mu_array);
             }
-            std::cout << "\t" << avg / NUM_REPS << std::flush;
+            std::cout << "," << avg / NUM_REPS << std::flush;
         }
         std::cout << std::endl;
-        shared_len *= 2;
+        shared_len <<= 1;
     }
 
     // int op_avg = 0;
