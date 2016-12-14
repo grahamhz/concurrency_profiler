@@ -101,7 +101,7 @@ void* no_lock_array(void *x)
     for (long i = 0; i < NUM_OPS; ++i)
     {
         int index = fast_random->gen() % shared_len;
-        
+               
         shared[index].val++;
     }
 
